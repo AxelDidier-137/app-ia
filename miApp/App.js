@@ -1,151 +1,103 @@
 import React, { useState } from "react";
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, FlatList } from "react-native";
 
 export default function App() {
   const [mensaje, setMensaje] = useState("");
   const [mensajes, setMensajes] = useState([]);
 
+  const API_URL = "https://app-ia-hk22.onrender.com/chat";
+
   const enviarMensaje = async () => {
     if (!mensaje.trim()) return;
 
-    const texto = mensaje;
+    const textoUsuario = mensaje;
 
     setMensajes((prev) => [
       ...prev,
-      { id: Date.now().toString(), texto, usuario: true },
+      { id: Date.now().toString(), texto: textoUsuario, usuario: true },
     ]);
 
     setMensaje("");
 
     try {
-      const res = await fetch("https://app-ia-hk22.onrender.com/chat", {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: texto,
+          message: textoUsuario,
         }),
       });
 
       const data = await res.json();
 
-      console.log("RESPUESTA FRONT:", data);
-
       setMensajes((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          texto: data.reply || "Sin respuesta del servidor",
+          texto: data.reply || "Sin respuesta",
           usuario: false,
         },
       ]);
-    } catch (e) {
+    } catch (error) {
       setMensajes((prev) => [
         ...prev,
         {
-          id: Date.now().toString(),
-          texto: "Error de conexión",
+          id: (Date.now() + 1).toString(),
+          texto: "Error al conectar con el servidor",
           usuario: false,
         },
       ]);
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View
-      style={[
-        styles.msg,
-        item.usuario ? styles.user : styles.ai,
-      ]}
-    >
-      <Text style={{ color: "#fff" }}>{item.texto}</Text>
+  return (
+    <View style={{ flex: 1, padding: 20, paddingTop: 60 }}>
+
+      <FlatList
+        data={mensajes}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Text
+            style={{
+              alignSelf: item.usuario ? "flex-end" : "flex-start",
+              margin: 5,
+              padding: 10,
+              backgroundColor: item.usuario ? "#DCF8C6" : "#eee",
+              borderRadius: 10,
+            }}
+          >
+            {item.texto}
+          </Text>
+        )}
+      />
+
+      <TextInput
+        value={mensaje}
+        onChangeText={setMensaje}
+        placeholder="Escribe un mensaje..."
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          padding: 10,
+          borderRadius: 10,
+          marginTop: 10,
+        }}
+      />
+
+      <TouchableOpacity
+        onPress={enviarMensaje}
+        style={{
+          backgroundColor: "#007AFF",
+          padding: 15,
+          borderRadius: 10,
+          marginTop: 10,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: "white" }}>Enviar</Text>
+      </TouchableOpacity>
     </View>
   );
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <FlatList
-          data={mensajes}
-          keyExtractor={(i) => i.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ padding: 10 }}
-        />
-
-        <View style={styles.inputBox}>
-          <TextInput
-            value={mensaje}
-            onChangeText={setMensaje}
-            placeholder="Escribe..."
-            placeholderTextColor="#888"
-            style={styles.input}
-          />
-
-          <TouchableOpacity
-            onPress={enviarMensaje}
-            style={styles.btn}
-          >
-            <Text style={{ color: "#fff" }}>Enviar</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#111" },
-
-  msg: {
-    padding: 10,
-    marginVertical: 5,
-    borderRadius: 10,
-    maxWidth: "80%",
-  },
-
-  user: {
-    backgroundColor: "#1e90ff",
-    alignSelf: "flex-end",
-  },
-
-  ai: {
-    backgroundColor: "#333",
-    alignSelf: "flex-start",
-  },
-
-  inputBox: {
-    flexDirection: "row",
-    padding: 10,
-    marginBottom: 20,
-  },
-
-  input: {
-    flex: 1,
-    backgroundColor: "#222",
-    color: "#fff",
-    padding: 10,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-
-  btn: {
-    backgroundColor: "#1e90ff",
-    paddingHorizontal: 15,
-    justifyContent: "center",
-    borderRadius: 10,
-  },
-});
